@@ -1,0 +1,29 @@
+region: us
+console_ui: false
+http_proxy: false
+inspect_db_size: 50000000
+log_level: info
+log_format: json
+log: ./ngrok.log
+root_cas: trusted
+update: false
+update_channel: stable
+web_addr: localhost:4040
+tunnels:
+  website:
+    addr: hook.default.svc.cluster.local:8888
+    proto: http
+    bind_tls: true
+    host_header: 
+#
+#  e2etls:
+#    addr: 9000
+#    proto: tls
+#    hostname: myapp.example.com
+#    crt: example.crt
+#    key: example.key
+#
+#  ssh-access:
+#    addr: 22
+#    proto: tcp
+#    remote_addr: 1.tcp.ngrok.io:12345
