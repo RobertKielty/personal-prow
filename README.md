@@ -7,7 +7,7 @@ at the Kubernetes Contributor Summit North America 2019 [Setting Up and Running 
 
 Attendees are welcome to log (and fix) issues as I iron out the crinkles in the coming days!
 
-## Boostraping kind with a prow deployment
+## Bootstrapping kind with a prow deployment
 
 ./personal_prow.sh starts a kind cluster and uses [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) and  [kapp](https://get-kapp.io/) to deploy a cluster using the starter.yaml taken from test-infra
 
