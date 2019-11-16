@@ -30,8 +30,8 @@ user=robertkielty
 #declare -r GITHUB_ORG="RokiTDSOrg" #declare -r GITHUB_USER="RobertKielty" #declare -r GITHUB_REPO="kubernetes"
 declare -r CLUSTER_NAME="personal-prow-cluster"
 declare -r SECRETS_DIR="./secrets"
-declare -r OAUTH_TOKEN="${SECRETS_DIR}/gh_oauth_token"
-declare -r HMAC_TOKEN="${SECRETS_DIR}/hmac_token"
+declare -r OAUTH_TOKEN="${SECRETS_DIR}/gh-oauth-token"
+declare -r HMAC_TOKEN="${SECRETS_DIR}/hmac-token"
 # Select the system version of go 
 # shellcheck source=../../.gvm/scripts/gvm  
 
@@ -44,8 +44,8 @@ function prowbot-oauth-setup(){
   printf "Click on the Generate new token button\n"
   printf "\tThe a/c must have the public_repo and repo:status\n"
   printf "\tAdd the repo scope if you plan on handing private repos\n"
-  printf "\tAdd the admin_org:hook scope if you plan on handling a github org\n"
-  printf "\tPlace the generated hmac token in./secrets/oauth-token\n"
+  printf "\tAdd the admin_org:hook scope if you plan on handling a github org\n\n"
+  printf "\tPlace the generated oauth token in ${OAUTH_TOKEN}\n"
 
   printf "For more details goto:\n"
   echo "https://github.com/kubernetes/test-infra/blob/master/prow/getting_started_deploy.md#github-bot-account"
@@ -54,6 +54,7 @@ function prowbot-oauth-setup(){
 function prowbot-hmac-setup() {
   printf "Creating a hmac token for Webhook\n"
   openssl rand -hex 20 > "${HMAC_TOKEN}"
+  printf "Created ${HMAC_TOKEN}\n"
 }
 
 function check-prowbot-config() {
@@ -61,13 +62,13 @@ if [ ! -d $SECRETS_DIR ]; then
   echo "Setting up a secrets dir to store your Github prow bot token"
   mkdir $SECRETS_DIR
 else
-  if [ ! -f hmac-token ]; then
+  if [ ! -f "${HMAC_TOKEN}" ]; then
     echo "hmac-token is missing"
     prowbot-hmac-setup
     exit 101
   fi
-  if [ ! -f gh_oauth_token ]; then
-    echo "gh_oauth_token is missing"
+  if [ ! -f ${OAUTH_TOKEN} ]; then
+    echo "${OAUTH_TOKEN}is missing"
     prowbot-oauth-setup
     exit 102
   fi
