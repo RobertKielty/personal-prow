@@ -29,12 +29,50 @@ user=robertkielty
 
 #declare -r GITHUB_ORG="RokiTDSOrg" #declare -r GITHUB_USER="RobertKielty" #declare -r GITHUB_REPO="kubernetes"
 declare -r CLUSTER_NAME="personal-prow-cluster"
-declare SECRETS_DIR
-SECRETS_DIR="$(pwd)/secrets"
+declare -r SECRETS_DIR="./secrets"
+declare -r OAUTH_TOKEN="${SECRETS_DIR}/gh_oauth_token"
+declare -r HMAC_TOKEN="${SECRETS_DIR}/hmac_token"
 # Select the system version of go 
 # shellcheck source=../../.gvm/scripts/gvm  
+
 source  ~/.gvm/scripts/gvm # https://github.com/moovweb/gvm/issues/188
 gvm use system > /dev/null 
+function prowbot-oauth-setup(){
+  printf "You need to create a bot account on Github.\n"
+  printf "on that bot account goto, \n"
+  printf "\thttps://github.com/settings/tokens\n"
+  printf "Click on the Generate new token button\n"
+  printf "\tThe a/c must have the public_repo and repo:status\n"
+  printf "\tAdd the repo scope if you plan on handing private repos\n"
+  printf "\tAdd the admin_org:hook scope if you plan on handling a github org\n"
+  printf "\tPlace the generated hmac token in./secrets/oauth-token\n"
+
+  printf "For more details goto:\n"
+  echo "https://github.com/kubernetes/test-infra/blob/master/prow/getting_started_deploy.md#github-bot-account"
+}
+
+function prowbot-hmac-setup() {
+  printf "Creating a hmac token for Webhook\n"
+  openssl rand -hex 20 > "${HMAC_TOKEN}"
+}
+
+function check-prowbot-config() {
+if [ ! -d $SECRETS_DIR ]; then
+  echo "Setting up a secrets dir to store your Github prow bot token"
+  mkdir $SECRETS_DIR
+else
+  if [ ! -f hmac-token ]; then
+    echo "hmac-token is missing"
+    prowbot-hmac-setup
+    exit 101
+  fi
+  if [ ! -f gh_oauth_token ]; then
+    echo "gh_oauth_token is missing"
+    prowbot-oauth-setup
+    exit 102
+  fi
+fi
+}
 
 function check-prow-config() {
 checkconfig --plugin-config=/home/${user}/gh/personal-prow/plugins.yaml \
@@ -42,7 +80,7 @@ checkconfig --plugin-config=/home/${user}/gh/personal-prow/plugins.yaml \
   2>&1 >/dev/null | jq . 
 }
 
-# TODO Create script to setup the secrets dir hard coding for now
+# TODO handle kind create failure 
 function start-personal-prow() {
   if result=$(kind create cluster --name="$CLUSTER_NAME"); then
     echo "$0: kind has brought up $CLUSTER_NAME"
@@ -52,12 +90,14 @@ function start-personal-prow() {
     # Configure cluster
     kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user "$CLUSTER_USER"
     kubectl create secret generic hmac-token --from-file=hmac="$SECRETS_DIR"/hmac-token 
-    kubectl create secret generic oauth-token --from-file=oauth="$SECRETS_DIR"/oauth_secret_personal_access_token 
+    kubectl create secret generic oauth-token --from-file=oauth="${OAUTH_TOKEN}"
     kapp deploy -a personal-prow-app -f "$GOPATH"/src/github.com/RobertKielty/test-infra/prow/cluster/starter.yaml
     kubectl create configmap plugins --from-file=plugins.yaml=./plugins.yaml --dry-run -o yaml | kubectl replace configmap plugins -f -
     kubectl create configmap config --from-file=config.yaml=./config.yaml --dry-run -o yaml | kubectl replace configmap config -f -
   fi
 }
+
+check-prowbot-config &&
 check-prow-config &&
 # Start up a kind cluster for prow called personal-prow
 if result=$(kind get clusters | grep "$CLUSTER_NAME"); then
