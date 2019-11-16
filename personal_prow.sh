@@ -36,6 +36,11 @@ SECRETS_DIR="$(pwd)/secrets"
 source  ~/.gvm/scripts/gvm # https://github.com/moovweb/gvm/issues/188
 gvm use system > /dev/null 
 
+function check-prow-config() {
+checkconfig --plugin-config=/home/${user}/gh/personal-prow/plugins.yaml \
+  --config-path=/home/${user}/gh/personal-prow/config.yaml \
+  2>&1 >/dev/null | jq . 
+}
 
 # TODO Create script to setup the secrets dir hard coding for now
 function start-personal-prow() {
@@ -53,8 +58,7 @@ function start-personal-prow() {
     kubectl create configmap config --from-file=config.yaml=./config.yaml --dry-run -o yaml | kubectl replace configmap config -f -
   fi
 }
-
-checkconfig --plugin-config=/home/${user}/gh/personal-prow/plugins.yaml --config-path=/home/${user}/gh/personal-prow/config.yaml 2>&1 >/dev/null | jq . && 
+check-prow-config &&
 # Start up a kind cluster for prow called personal-prow
 if result=$(kind get clusters | grep "$CLUSTER_NAME"); then
   echo "$0: delete old personal-prow"
