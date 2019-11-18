@@ -40,3 +40,8 @@ You should create :
 add_ngrok_hook.sh creates a ngrok-based tunnel and adds that as a webhook on your repo to make your local prow instance reachable from github
 
  ```./add_ngrok_hook.sh```
+
+## Go to the deck in your browserA
+
+http://deck.default.svc.cluster.local/
+
