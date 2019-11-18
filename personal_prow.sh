@@ -96,8 +96,6 @@ function install-tools() {
     install-k14s-from-github kwt
     kwt version
   fi
-
-
 }
 
 function prowbot-oauth-setup(){
@@ -139,10 +137,9 @@ function check-prowbot-config() {
 }
 
 function check-prow-config() {
-  # For now create a tmp config using ytt and check that 
   rm -rf ./configured/
   ytt -f . --output-directory ./configured/
-  checkconfig --plugin-config=/home/${user}/gh/personal-prow/plugins.yaml \
+  checkconfig --plugin-config=./configured/plugins.yaml \
    --config-path=./configured/config.yaml \
    2>&1 >/dev/null | jq .
 }
@@ -168,14 +165,23 @@ function add-prow-image-tag() {
   ytt . | kubectl replace -f -
 }
 
-function deploy-prow() {
-  # NB This picks up the prow image versions that were used the last time
+function kaap-deploy-prow() {
   if [ -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml ]; then
+    echo "deploy starter"
     kapp deploy -a personal-prow-app -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml
+    echo "deploy prow config"
     kapp deploy -a personal-prow-app -f ./configured/config.yaml
-#   kubectl apply -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml
-#   kubectl apply -f ./configured/config.yaml
-#   kubectl apply -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml
+  else
+    echo "deployment file not found!"
+  fi
+}
+
+function kubectl-deploy-prow() {
+  if [ -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml ]; then
+    echo "deploy starter"
+    kubectl --validate=false apply -f /home/robertkielty/go/src/k8s.io/test-infra/prow/cluster/starter.yaml
+    echo "deploy prow config"
+    kubectl apply -f ./configured/config.yaml
   else
     echo "deployment file not found!"
   fi
@@ -189,10 +195,9 @@ if kind get clusters | grep "${CLUSTER_NAME}"; then
   echo "$0: delete old personal-prow"
   if kind delete cluster --name="$CLUSTER_NAME"; then
     start-personal-prow-cluster
+    kubectl-deploy-prow
 
-    deploy-prow
-
-    kubectl -n test-pods create secret generic gcs-credentials --from-file=service-account.json 
+    kubectl -n test-pods create secret generic gcs-credentials --from-file=service-account.json
     kubectl create configmap plugins --from-file=plugins.yaml=./configured/plugins.yaml --dry-run -o yaml | kubectl replace configmap plugins -f -
     kubectl create configmap config --from-file=config.yaml=./configured/config.yaml --dry-run -o yaml | kubectl replace configmap config -f -
   else
@@ -201,7 +206,12 @@ if kind get clusters | grep "${CLUSTER_NAME}"; then
   fi
 else
   echo "$0 : creating personal prow for first time"
-  start-personal-prow
+  start-personal-prow-cluster
+  deploy-prow
+
+  kubectl -n test-pods create secret generic gcs-credentials --from-file=service-account.json 
+  kubectl create configmap plugins --from-file=plugins.yaml=./configured/plugins.yaml --dry-run -o yaml | kubectl replace configmap plugins -f -
+  kubectl create configmap config --from-file=config.yaml=./configured/config.yaml --dry-run -o yaml | kubectl replace configmap config -f -
 fi
 
 echo "$0 : End of script"

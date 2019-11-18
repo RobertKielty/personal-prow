@@ -1,8 +1,6 @@
 #@ load("@ytt:data", "data")
 
 #!rpkref Getting started TODO provide full ref
-
-#! TODO We can use ytt here to select the correct domain name, utility_images, gcs bucket name etc.
 plank:
   #! used to link to job results for non decorated jobs (without pod utilities)
   job_url_template: 'https://deck.default.svc.cluster.local/view/gcs/robk-personal-prow-artefacts/pr-logs/pull/{{.Spec.Refs.Repo}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}/{{.Spec.Job}}/{{.Status.BuildID}}'
