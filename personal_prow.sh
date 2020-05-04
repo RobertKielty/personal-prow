@@ -161,7 +161,7 @@ function start-personal-prow-cluster() {
 function add-prow-image-tag() {
   # TODO ask test-infra about picking these image refs up from github #prowconfiginception
   tag=$(kubectl get pod -o jsonpath='{.items[0].spec.containers[0].image}' | cut -d: -f2 )
-  printf "#@data/values\n---\nprow-image:\"%s\"\n", $tag > values.yml
+  printf "#@data/values\n---\nprow-image:\"%s\"\n", "$tag" > values.yml
   ytt . | kubectl replace -f -
 }
 
